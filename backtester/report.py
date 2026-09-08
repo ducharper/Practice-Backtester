@@ -9,7 +9,7 @@ def summarize_backtest(results: pd.DataFrame, periods_per_year: int, risk_free_r
     summary = {
         'Total Return': total_return(results["Strategy Returns"]),
         'Annualized Return': annualized_return(results["Strategy Returns"], periods_per_year),
-        'Benchmark Return': results['Backtest Return'].iloc[-1],
+        'Benchmark Return': total_return(results["Asset Returns"]),
         'Annualized Volatility': annualized_volatility(results["Strategy Returns"], periods_per_year),
         'Sharpe Ratio': sharpe_ratio(results["Strategy Returns"], periods_per_year, risk_free_rate),
         'Max Drawdown':  max_drawdown(results["Equity Curve"])
