@@ -17,6 +17,7 @@ class BackTestEngine:
         gross_strategy_returns = positions * asset_returns
         strategy_returns = gross_strategy_returns - calculate_transaction_costs(positions, self.cost_bps)
         equity_curve = self.initial_cash * (1 + strategy_returns).cumprod()
+        benchmark_equity_curve = 100 * (1 + strategy_returns).cumprod()
 
         results = pd.DataFrame({
             "Close": self.data["Close"],
@@ -24,7 +25,8 @@ class BackTestEngine:
             "Positions": positions,
             "Asset Returns": asset_returns,
             "Strategy Returns": strategy_returns,
-            "Equity Curve": equity_curve
+            "Equity Curve": equity_curve,
+            "Benchmark Equity Curve": benchmark_equity_curve
         })
 
         return results

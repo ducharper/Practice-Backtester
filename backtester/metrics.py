@@ -5,6 +5,14 @@ def total_return(strategy_returns: pd.Series) -> float:
 
     return float((1 + strategy_returns).prod() - 1)
 
+def annualized_return(strategy_returns: pd.Series, periods_per_year: int) -> float:
+    """ Returns the annualized return of the strategy. """
+
+    total = total_return(strategy_returns) + 1
+    years = strategy_returns.size / periods_per_year
+
+    return total ** (1 / years) - 1
+
 def annualized_volatility(strategy_returns: pd.Series, periods_per_year: int) -> float:
     """ Returns the annualized volatility of the strategy. """
 
