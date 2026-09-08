@@ -5,6 +5,15 @@ from strategies.base import Strategy
 
 class BackTestEngine:
     def __init__(self, data: pd.DataFrame, strategy: Strategy, initial_cash: float, cost_bps: float):
+        if data.empty:
+            raise ValueError("The DataFrame cannot empty")
+
+        if initial_cash <= 0:
+            raise ValueError("The principle must be positive and nonzero")
+
+        if cost_bps < 0:
+            raise ValueError("The transaction cost cannot be negative")
+
         self.data = data.copy()
         self.strategy = strategy
         self.initial_cash = initial_cash
