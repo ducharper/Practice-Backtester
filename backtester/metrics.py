@@ -3,7 +3,12 @@ import pandas as pd
 def time_in_market(positions: pd.Series) -> float:
     """ Returns the percentage of the time frame in which the strategy is in the market. """
 
-    return (positions == 1).sum() / positions.size
+    return (positions != 0).sum() / positions.size
+
+def number_of_market_entries(positions: pd.Series) -> int:
+    """ Returns the number of entries into the market. """
+
+    return (positions.diff() > 0).sum()
 
 def total_return(strategy_returns: pd.Series) -> float:
     """ Returns the total percentage return of the strategy. """

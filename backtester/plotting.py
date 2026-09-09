@@ -13,5 +13,8 @@ def plot_backtest(result: pd.DataFrame) -> None:
     plt.title("Strategy vs. Benchmark")
     plt.xlabel("Date")
     plt.ylabel("Portfolio Value")
+    
     plt.legend()
+    plt.grid(alpha = 0.3)
+    plt.tight_layout()
     plt.show()
