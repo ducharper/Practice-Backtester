@@ -5,6 +5,8 @@ from strategies.base import Strategy
 
 class BackTestEngine:
     def __init__(self, data: pd.DataFrame, strategy: Strategy, initial_cash: float, cost_bps: float):
+        """ Initializes the backtest engine with the given data, strategy, principle, and transaction cost. """
+
         if data.empty:
             raise ValueError("The DataFrame cannot be empty")
 
@@ -23,6 +25,8 @@ class BackTestEngine:
         self.cost_bps = cost_bps
 
     def run(self) -> pd.DataFrame:
+        """ Runs a backtest with DataFrame and a chosen strategy. """
+
         signals = self.strategy.generate_signals(self.data)
         positions = signals.shift(1).fillna(0)
         asset_returns = self.data["Close"].pct_change().fillna(0)

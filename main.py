@@ -1,6 +1,7 @@
 import yfinance as yf
 
 from backtester.engine import BackTestEngine
+from backtester.plotting import plot_backtest
 from backtester.report import summarize_backtest, format_summary
 from strategies.moving_average_strategy import MovingAverageStrategy
 
@@ -17,6 +18,7 @@ def main() -> None:
     summary = summarize_backtest(result, 252, 0.04)
 
     print(format_summary(summary))
+    plot_backtest(result)
 
 if __name__ == "__main__":
     main()

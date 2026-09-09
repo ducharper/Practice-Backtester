@@ -3,6 +3,8 @@ from strategies.base import Strategy
 
 class MovingAverageStrategy(Strategy):
     def __init__(self, short_window: int, long_window: int):
+        """ Initializes the moving average strategy with given values for the short and long windows for rolling average. """
+
         if short_window >= long_window or short_window <= 0 or long_window <= 0:
             raise ValueError("Invalid window sizes")
 
