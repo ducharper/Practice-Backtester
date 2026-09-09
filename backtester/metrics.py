@@ -8,7 +8,7 @@ def time_in_market(positions: pd.Series) -> float:
 def number_of_market_entries(positions: pd.Series) -> int:
     """ Returns the number of entries into the market. """
 
-    return (positions.diff() > 0).sum()
+    return int((positions.diff() > 0).sum())
 
 def total_return(strategy_returns: pd.Series) -> float:
     """ Returns the total percentage return of the strategy. """
