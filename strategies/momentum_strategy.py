@@ -13,4 +13,7 @@ class MomentumStrategy(Strategy):
     def generate_signals(self, data: pd.DataFrame) -> pd.Series:
         """ Generates the signals based on momentum. """
 
-        return data["Close"] > data["Close"].shift(-self.lookback)
+        previous_close = data["Close"].shift(self.lookback)
+        signals = (data["Close"] > previous_close).astype(int)
+
+        return signals
