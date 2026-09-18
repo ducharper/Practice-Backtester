@@ -4,7 +4,7 @@ from backtester.metrics import total_return, annualized_volatility, sharpe_ratio
     sortino_ratio, time_in_market, number_of_market_entries
 
 
-def summarize_backtest(results: pd.DataFrame, periods_per_year: int, risk_free_rate: float) -> dict[str, float]:
+def summarize_backtest(results: pd.DataFrame, periods_per_year: int, risk_free_rate: float) -> dict[str, float | int]:
     """ Uses the result dataframe to calculate performance metrics and package them in a readable format. """
 
     summary = {
