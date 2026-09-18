@@ -1,4 +1,5 @@
 import pandas as pd
+
 from strategies.base import Strategy
 
 class MovingAverageStrategy(Strategy):
