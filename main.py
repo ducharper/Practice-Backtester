@@ -38,14 +38,14 @@ def run_backtest(
 ) -> tuple[pd.DataFrame, dict[str, float | int], pd.DataFrame]:
     """ Reusable function that runs the backtest """
 
-    symbol = yf.download(
+    data = yf.download(
         symbol,
         start,
         end,
         multi_level_index=False
     )
 
-    bt = BackTestEngine(symbol, strategy, initial_cash, cost_bps)
+    bt = BackTestEngine(data, strategy, initial_cash, cost_bps)
     result = bt.run()
     summary = summarize_backtest(result, periods_per_year, risk_free_rate)
     ledger = build_trade_ledger(result)
