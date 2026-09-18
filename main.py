@@ -3,6 +3,7 @@ import yfinance as yf
 from backtester.engine import BackTestEngine
 from backtester.plotting import plot_backtest
 from backtester.report import summarize_backtest, format_summary
+from backtester.trades import build_trade_ledger
 from strategies.moving_average_strategy import MovingAverageStrategy
 
 def main() -> None:
@@ -19,6 +20,10 @@ def main() -> None:
 
     print(format_summary(summary))
     plot_backtest(result)
+
+    ledger = build_trade_ledger(result)
+    print("\nTrade Ledger")
+    print(ledger.to_string(index=False))
 
 if __name__ == "__main__":
     main()
