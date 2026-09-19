@@ -1,12 +1,6 @@
-import yfinance as yf
-import pandas as pd
-
-from backtester.engine import BackTestEngine
 from backtester.plotting import plot_backtest
-from backtester.report import summarize_backtest, format_summary
+from backtester.report import format_summary
 from backtester.runner import run_backtest
-from backtester.trades import build_trade_ledger
-from strategies.base import Strategy
 from strategies.moving_average_strategy import MovingAverageStrategy
 
 def main() -> None:

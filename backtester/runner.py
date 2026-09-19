@@ -20,8 +20,8 @@ def run_backtest(
 
     data = yf.download(
         symbol,
-        start,
-        end,
+        start=start,
+        end=end,
         multi_level_index=False
     )
 
