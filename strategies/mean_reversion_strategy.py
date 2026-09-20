@@ -1,5 +1,4 @@
 import pandas as pd
-from scipy.stats import false_discovery_control
 
 from strategies.base import Strategy
 
@@ -7,14 +6,14 @@ class MeanReversionStrategy(Strategy):
     def __init__(self, mean_window: int, entry_distance: float, exit_distance: float):
         """ Initializes the mean reversion strategy with given values. """
 
-        if mean_window or entry_distance or exit_distance <= 0:
-            raise ValueError("The mean window and distance values must be positive and non-zero")
+        if mean_window <= 0:
+            raise ValueError("Mean window must be positive")
 
-        if entry_distance or exit_distance > 1:
-            raise ValueError("The asset cannot average to a negative value")
+        if not 0 < entry_distance < 1:
+            raise ValueError("Entry distance must be between 0 and 1")
 
-        if exit_distance >= entry_distance:
-            raise ValueError("Exit distance must be less than entry distance")
+        if not 0 <= exit_distance < entry_distance:
+            raise ValueError("Exit distance must be nonnegative and less than entry distance")
 
         self.mean_window = mean_window
         self.entry_distance = entry_distance
