@@ -14,7 +14,7 @@ class MeanReversionStrategy(Strategy):
             raise ValueError("The asset cannot average to a negative value")
 
         if exit_distance >= entry_distance:
-            raise ValueError("Exit distance cannot be greater than entry distance")
+            raise ValueError("Exit distance must be less than entry distance")
 
         self.mean_window = mean_window
         self.entry_distance = entry_distance

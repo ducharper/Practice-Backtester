@@ -1,5 +1,6 @@
-from api.schemas import MovingAverageConfig, MomentumConfig
+from api.schemas import MovingAverageConfig, MomentumConfig, MeanReversionConfig
 from strategies.base import Strategy
+from strategies.mean_reversion_strategy import MeanReversionStrategy
 from strategies.moving_average_strategy import MovingAverageStrategy
 from strategies.momentum_strategy import MomentumStrategy
 
@@ -15,6 +16,13 @@ def create_strategy(config: MovingAverageConfig | MomentumConfig) -> Strategy:
     if isinstance(config, MomentumConfig):
         return MomentumStrategy(
             lookback=config.lookback,
+        )
+
+    if isinstance(config, MeanReversionConfig):
+        return MeanReversionStrategy(
+            mean_window=config.mean_window,
+            entry_distance=config.entry_distance,
+            exit_distance=config.exit_distance,
         )
 
     raise ValueError("Unsupported strategy configuration")

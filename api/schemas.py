@@ -23,6 +23,21 @@ class MomentumConfig(BaseModel):
     name: Literal["momentum"]
     lookback: int = Field(default=20, gt=0, strict=True)
 
+class MeanReversionConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: Literal["mean_reversion"]
+    mean_window: int = Field(default=20, gt=0, strict=True)
+    entry_distance: float = Field(default=0.05, gt=0, lt=1, strict=True)
+    exit_distance: float = Field(default=0.01, ge=0, lt=1, strict=True)
+
+    @model_validator(mode="after")
+    def validate_distances(self) -> Self:
+        if self.exit_distance >= self.entry_distance:
+            raise ValueError("Exit distance must be less than than entry distance")
+
+        return self
+
 class BacktestRequest(BaseModel):
 
     model_config = ConfigDict(
