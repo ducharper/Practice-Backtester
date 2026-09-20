@@ -4,7 +4,7 @@ from strategies.mean_reversion_strategy import MeanReversionStrategy
 from strategies.moving_average_strategy import MovingAverageStrategy
 from strategies.momentum_strategy import MomentumStrategy
 
-def create_strategy(config: MovingAverageConfig | MomentumConfig) -> Strategy:
+def create_strategy(config: MovingAverageConfig | MomentumConfig | MeanReversionConfig) -> Strategy:
     """ Builds a strategy from validated API settings """
 
     if isinstance(config, MovingAverageConfig):

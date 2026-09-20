@@ -55,7 +55,7 @@ class BacktestRequest(BaseModel):
     periods_per_year: int = Field(default=252, gt=0)
     risk_free_rate: float = Field(default=0.04, gt=-1)
 
-    strategy: MovingAverageConfig | MomentumConfig = Field(
+    strategy: MovingAverageConfig | MomentumConfig | MeanReversionConfig = Field(
         discriminator="name"
     )
 
