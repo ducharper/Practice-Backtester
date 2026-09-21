@@ -1,10 +1,11 @@
 from math import isfinite
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from api.schemas import BacktestRequest, BacktestResponse
 from api.strategy_factory import create_strategy
 from backtester.runner import run_backtest
+from backtester.errors import MarketDataUnavailableError
 
 app = FastAPI(title="Practice Backtester")
 
@@ -12,16 +13,22 @@ app = FastAPI(title="Practice Backtester")
 def create_backtest(request: BacktestRequest) -> dict:
     strategy = create_strategy(request.strategy)
 
-    result, summary, ledger = run_backtest(
-        symbol=request.symbol,
-        start=request.start.isoformat(),
-        end=request.end.isoformat(),
-        strategy=strategy,
-        initial_cash=request.initial_cash,
-        cost_bps=request.cost_bps,
-        periods_per_year=request.periods_per_year,
-        risk_free_rate=request.risk_free_rate,
-    )
+    try:
+        result, summary, ledger = run_backtest(
+            symbol=request.symbol,
+            start=request.start.isoformat(),
+            end=request.end.isoformat(),
+            strategy=strategy,
+            initial_cash=request.initial_cash,
+            cost_bps=request.cost_bps,
+            periods_per_year=request.periods_per_year,
+            risk_free_rate=request.risk_free_rate,
+        )
+    except MarketDataUnavailableError as exception:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exception),
+        ) from exception
 
     clean_summary = {}
     benchmark_equity = (

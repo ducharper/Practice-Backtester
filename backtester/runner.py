@@ -4,6 +4,7 @@ import yfinance as yf
 from backtester.engine import BackTestEngine
 from backtester.report import summarize_backtest
 from backtester.trades import build_trade_ledger
+from backtester.errors import MarketDataUnavailableError
 from strategies.base import Strategy
 
 def run_backtest(
@@ -24,6 +25,13 @@ def run_backtest(
         end=end,
         multi_level_index=False
     )
+
+    if data is None or data.empty:
+        raise MarketDataUnavailableError(
+            f"No price data was returned for {symbol} "
+            f"between {start} and {end}. "
+            "Check the symbol and dates, or try again later."
+        )
 
     bt = BackTestEngine(data, strategy, initial_cash, cost_bps)
     result = bt.run()
