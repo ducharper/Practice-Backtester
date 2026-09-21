@@ -1,4 +1,22 @@
 import { useState } from 'react'
+import type { FormEvent } from 'react'
+
+type StrategyConfig =
+    | {
+        name: 'moving_average'
+        short_window: number
+        long_window: number
+      }
+    | {
+      name: 'momentum'
+      lookback: number
+      }
+    | {
+      name: 'mean_reversion'
+      mean_window: number
+      entry_distance: number
+      exit_distance: number
+      }
 
 export default function BacktestForm() {
     const [symbol, setSymbol] = useState('AAPL')
@@ -11,14 +29,84 @@ export default function BacktestForm() {
     const [meanWindow, setMeanWindow] = useState('20')
     const [entryDistance, setEntryDistance] = useState('5')
     const [exitDistance, setExitDistance] = useState('1')
+    const [error, setError] = useState('')
+
+    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault()
+        setError('')
+
+        if (!symbol.trim()) {
+            setError('Enter a symbol.')
+            return
+        }
+
+        if (start >= end) {
+            setError('Start date must be before end date.')
+            return
+        }
+
+        let strategyConfig: StrategyConfig
+
+        if (strategy === 'moving_average') {
+            const short = Number(shortWindow)
+            const long = Number(longWindow)
+
+            if (short >= long) {
+                setError('Short window must be less than long window.')
+                return
+            }
+
+            strategyConfig = {
+                name: 'moving_average',
+                short_window: short,
+                long_window: long,
+            }
+        } else if (strategy === 'momentum') {
+            strategyConfig = {
+                name: 'momentum',
+                lookback: Number(lookback),
+            }
+        } else if (strategy === 'mean_reversion') {
+            const entry = Number(entryDistance) / 100
+            const exit = Number(exitDistance) / 100
+
+            if (entry <= 0 || entry >= 1 || exit < 0 || exit >= entry) {
+                setError(
+                    'Entry distance must be between 0% and 100%, ' +
+                    'and exit distance must be nonnegative and below entry distance.'
+                )
+                return
+            }
+
+            strategyConfig = {
+                name: 'mean_reversion',
+                mean_window: Number(meanWindow),
+                entry_distance: entry,
+                exit_distance: exit,
+            }
+        } else {
+            setError('Choose a supported strategy.')
+            return
+        }
+
+        const request = {
+            symbol: symbol.trim().toUpperCase(),
+            start,
+            end,
+            strategy: strategyConfig,
+        }
+
+        console.log(JSON.stringify(request, null, 2))
+    }
 
     return (
-        <section className="settings-panel">
+        <form className="settings-panel" onSubmit={handleSubmit}>
             <h2>Experiment settings</h2>
 
             <label>
                 Symbol
                 <input
+                    required
                     value={symbol}
                     onChange={(event) => setSymbol(event.target.value)}
                 />
@@ -28,6 +116,7 @@ export default function BacktestForm() {
                 Start date
                 <input
                     type="date"
+                    required
                     value={start}
                     onChange={(event) => setStart(event.target.value)}
                 />
@@ -37,6 +126,7 @@ export default function BacktestForm() {
                 End date
                 <input
                     type="date"
+                    required
                     value={end}
                     onChange={(event) => setEnd(event.target.value)}
                 />
@@ -139,7 +229,11 @@ export default function BacktestForm() {
                     </div>
                 )}
 
-            <p>Selected symbol: {symbol}</p>
-        </section>
+            {error && <p role="alert">{error}</p>}
+
+             <button type="submit">
+                Run Backtest
+             </button>
+        </form>
     )
 }
