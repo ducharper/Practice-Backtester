@@ -24,9 +24,35 @@ def create_backtest(request: BacktestRequest) -> dict:
     )
 
     clean_summary = {}
+    benchmark_equity = (
+        request.initial_cash * (1 + result["Asset Returns"]).cumprod()
+    )
+
+    equity = []
+    for row_number, (timestamp, row) in enumerate(result.iterrows()):
+        equity.append({
+            "date": timestamp.date().isoformat(),
+            "strategy": float(row["Equity Curve"]),
+            "benchmark": float(benchmark_equity.iloc[row_number]),
+        })
+
+    trades = []
+    for _, row in ledger.iterrows():
+        trades.append({
+            "entry_date": row["Entry Date"].date().isoformat(),
+            "exit_date": row["Exit Date"].date().isoformat(),
+            "entry_price": float(row["Entry Price"]),
+            "exit_price": float(row["Exit Price"]),
+            "holding_period": int(row["Holding Period"]),
+            "net_return": float(row["Net Return"]),
+        })
 
     for name, value in summary.items():
         numeric_value = float(value)
         clean_summary[name] = (numeric_value if isfinite(numeric_value) else None)
 
-    return {"summary": clean_summary}
+    return {
+        "summary": clean_summary,
+        "equity": equity,
+        "trades": trades,
+    }
