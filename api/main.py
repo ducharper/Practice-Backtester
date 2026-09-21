@@ -2,13 +2,13 @@ from math import isfinite
 
 from fastapi import FastAPI
 
-from api.schemas import BacktestRequest
+from api.schemas import BacktestRequest, BacktestResponse
 from api.strategy_factory import create_strategy
 from backtester.runner import run_backtest
 
 app = FastAPI(title="Practice Backtester")
 
-@app.post("/backtests")
+@app.post("/backtests", response_model=BacktestResponse)
 def create_backtest(request: BacktestRequest) -> dict:
     strategy = create_strategy(request.strategy)
 

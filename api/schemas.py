@@ -65,3 +65,21 @@ class BacktestRequest(BaseModel):
             raise ValueError("Start date must be before end")
 
         return self
+
+class EquityPoint(BaseModel):
+    date: date
+    strategy: float
+    benchmark: float
+
+class TradeResponse(BaseModel):
+    entry_date: date
+    exit_date: date
+    entry_price: float
+    exit_price: float
+    holding_period: int
+    net_return: float
+
+class BacktestResponse(BaseModel):
+    summary: dict[str, float | None]
+    equity: list[EquityPoint]
+    trades: list[TradeResponse]
