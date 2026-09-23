@@ -30,10 +30,16 @@ export default function BacktestForm() {
     const [entryDistance, setEntryDistance] = useState('5')
     const [exitDistance, setExitDistance] = useState('1')
     const [error, setError] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+    const [success, setSuccess] = useState('')
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
+
+        if (isLoading) return
+
         setError('')
+        setSuccess('')
 
         if (!symbol.trim()) {
             setError('Enter a symbol.')
@@ -96,7 +102,45 @@ export default function BacktestForm() {
             strategy: strategyConfig,
         }
 
-        console.log(JSON.stringify(request, null, 2))
+        setIsLoading(true)
+
+        try {
+            const response = await fetch('/api/backtests', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(request),
+            })
+
+            const data = await response.json().catch(() => null)
+
+            if (!response.ok) {
+                const message =
+                    typeof data?.detail === 'string'
+                        ? data.detail
+                        : response.status === 422
+                            ? 'The API rejected these settings. Check your inputs.'
+                            : `Backtest failed (${response.status}). Check the API terminal.`
+
+                throw new Error(message)
+            }
+
+            if (data === null) {
+                throw new Error('The API returned an unreadable response.')
+            }
+
+            console.log('Backtest results:', data)
+            setSuccess(`Backtest completed for ${request.symbol}.`)
+        } catch (error) {
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to run the backtest.'
+            )
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -231,9 +275,13 @@ export default function BacktestForm() {
 
             {error && <p role="alert">{error}</p>}
 
-             <button type="submit">
-                Run Backtest
-             </button>
+             <button type="submit" disabled={isLoading}>
+                {isLoading ? 'Running backtest…' : 'Run Backtest'}
+            </button>
+
+            <p role="status">
+                {isLoading ? 'Downloading prices and running the strategy…' : success}
+            </p>
         </form>
     )
 }
