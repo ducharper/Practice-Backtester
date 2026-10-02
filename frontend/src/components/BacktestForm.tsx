@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { BacktestResponse } from '../types/backtest'
 import type { FormEvent } from 'react'
 
 type StrategyConfig =
@@ -18,7 +19,11 @@ type StrategyConfig =
       exit_distance: number
       }
 
-export default function BacktestForm() {
+type BacktestFormProps = {
+    onResult: (result: BacktestResponse, symbol: string) => void
+}
+
+export default function BacktestForm({onResult}: BacktestFormProps) {
     const [symbol, setSymbol] = useState('AAPL')
     const [start, setStart] = useState('2020-01-01')
     const [end, setEnd] = useState('2026-01-01')
@@ -130,7 +135,7 @@ export default function BacktestForm() {
                 throw new Error('The API returned an unreadable response.')
             }
 
-            console.log('Backtest results:', data)
+            onResult(data, request.symbol)
             setSuccess(`Backtest completed for ${request.symbol}.`)
         } catch (error) {
             setError(
