@@ -1,292 +1,65 @@
-import { useState } from 'react'
-import type { BacktestResponse } from '../types/backtest'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-
-type StrategyConfig =
-    | {
-        name: 'moving_average'
-        short_window: number
-        long_window: number
-      }
-    | {
-      name: 'momentum'
-      lookback: number
-      }
-    | {
-      name: 'mean_reversion'
-      mean_window: number
-      entry_distance: number
-      exit_distance: number
-      }
-
-type BacktestFormProps = {
-    onResult: (result: BacktestResponse, symbol: string) => void
-}
-
-export default function BacktestForm({onResult}: BacktestFormProps) {
-    const [symbol, setSymbol] = useState('AAPL')
-    const [start, setStart] = useState('2020-01-01')
-    const [end, setEnd] = useState('2026-01-01')
-    const [strategy, setStrategy] = useState('moving_average')
-    const [shortWindow, setShortWindow] = useState('20')
-    const [longWindow, setLongWindow] = useState('50')
-    const [lookback, setLookback] = useState('20')
-    const [meanWindow, setMeanWindow] = useState('20')
-    const [entryDistance, setEntryDistance] = useState('5')
-    const [exitDistance, setExitDistance] = useState('1')
-    const [error, setError] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
-    const [success, setSuccess] = useState('')
-
-    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault()
-
-        if (isLoading) return
-
-        setError('')
-        setSuccess('')
-
-        if (!symbol.trim()) {
-            setError('Enter a symbol.')
-            return
-        }
-
-        if (start >= end) {
-            setError('Start date must be before end date.')
-            return
-        }
-
-        let strategyConfig: StrategyConfig
-
-        if (strategy === 'moving_average') {
-            const short = Number(shortWindow)
-            const long = Number(longWindow)
-
-            if (short >= long) {
-                setError('Short window must be less than long window.')
-                return
-            }
-
-            strategyConfig = {
-                name: 'moving_average',
-                short_window: short,
-                long_window: long,
-            }
-        } else if (strategy === 'momentum') {
-            strategyConfig = {
-                name: 'momentum',
-                lookback: Number(lookback),
-            }
-        } else if (strategy === 'mean_reversion') {
-            const entry = Number(entryDistance) / 100
-            const exit = Number(exitDistance) / 100
-
-            if (entry <= 0 || entry >= 1 || exit < 0 || exit >= entry) {
-                setError(
-                    'Entry distance must be between 0% and 100%, ' +
-                    'and exit distance must be nonnegative and below entry distance.'
-                )
-                return
-            }
-
-            strategyConfig = {
-                name: 'mean_reversion',
-                mean_window: Number(meanWindow),
-                entry_distance: entry,
-                exit_distance: exit,
-            }
-        } else {
-            setError('Choose a supported strategy.')
-            return
-        }
-
-        const request = {
-            symbol: symbol.trim().toUpperCase(),
-            start,
-            end,
-            strategy: strategyConfig,
-        }
-
-        setIsLoading(true)
-
-        try {
-            const response = await fetch('/api/backtests', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(request),
-            })
-
-            const data = await response.json().catch(() => null)
-
-            if (!response.ok) {
-                const message =
-                    typeof data?.detail === 'string'
-                        ? data.detail
-                        : response.status === 422
-                            ? 'The API rejected these settings. Check your inputs.'
-                            : `Backtest failed (${response.status}). Check the API terminal.`
-
-                throw new Error(message)
-            }
-
-            if (data === null) {
-                throw new Error('The API returned an unreadable response.')
-            }
-
-            onResult(data, request.symbol)
-            setSuccess(`Backtest completed for ${request.symbol}.`)
-        } catch (error) {
-            setError(
-                error instanceof Error
-                    ? error.message
-                    : 'Unable to run the backtest.'
-            )
-        } finally {
-            setIsLoading(false)
-        }
+import { submitBacktest } from '../lib/api'
+import type { CompletedRun, StrategyConfig, BacktestRequest } from '../types/experiment'
+type Props = { onResult: (run: CompletedRun) => void; onEdit: () => void; onRunning: (running: boolean) => void }
+export default function BacktestForm({ onResult, onEdit, onRunning }: Props) {
+  const [fields, setFields] = useState({ symbol: 'AAPL', start: '2020-01-01', end: '2026-01-01', strategy: 'moving_average', short: '20', long: '50', lookback: '20', mean: '20', entry: '5', exit: '1', cash: '10000', costs: '5', periods: '252', riskFree: '4' })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const controller = useRef<AbortController | null>(null)
+  useEffect(() => () => controller.current?.abort(), [])
+  function update(key: keyof typeof fields, value: string) { setFields(old => ({ ...old, [key]: value })); setError(''); onEdit() }
+  function numeric(key: keyof typeof fields, label: string, min: number, step = '1') {
+    return <label>{label}<input type="number" required min={min} step={step} value={fields[key]} onChange={e => update(key, e.target.value)} /></label>
+  }
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (controller.current) return
+    setError('')
+    const integer = (v: string) => v.trim() !== '' && Number.isInteger(Number(v)) && Number(v) > 0
+    if (!fields.symbol.trim() || !fields.start || !fields.end || fields.start >= fields.end) { setError('Enter a symbol and a start date before the end date.'); return }
+    let strategy: StrategyConfig
+    if (fields.strategy === 'moving_average') {
+      if (!integer(fields.short) || !integer(fields.long) || +fields.short >= +fields.long) { setError('Use positive whole-number windows; the short window must be smaller.'); return }
+      strategy = { name: 'moving_average', short_window: +fields.short, long_window: +fields.long }
+    } else if (fields.strategy === 'momentum') {
+      if (!integer(fields.lookback)) { setError('Lookback must be a positive whole number.'); return }
+      strategy = { name: 'momentum', lookback: +fields.lookback }
+    } else {
+      if (!integer(fields.mean) || !Number.isFinite(+fields.entry) || !Number.isFinite(+fields.exit) || fields.entry === '' || fields.exit === '' || +fields.entry <= 0 || +fields.entry >= 100 || +fields.exit < 0 || +fields.exit >= +fields.entry) { setError('Use a positive mean window, entry between 0% and 100%, and a nonnegative exit below entry.'); return }
+      strategy = { name: 'mean_reversion', mean_window: +fields.mean, entry_distance: +fields.entry / 100, exit_distance: +fields.exit / 100 }
     }
-
-    return (
-        <form className="settings-panel" onSubmit={handleSubmit}>
-            <h2>Experiment settings</h2>
-
-            <label>
-                Symbol
-                <input
-                    required
-                    value={symbol}
-                    onChange={(event) => setSymbol(event.target.value)}
-                />
-            </label>
-
-            <label>
-                Start date
-                <input
-                    type="date"
-                    required
-                    value={start}
-                    onChange={(event) => setStart(event.target.value)}
-                />
-            </label>
-
-            <label>
-                End date
-                <input
-                    type="date"
-                    required
-                    value={end}
-                    onChange={(event) => setEnd(event.target.value)}
-                />
-            </label>
-
-            <label>
-                Strategy
-                <select
-                    value={strategy}
-                    onChange={(event) => setStrategy(event.target.value)}
-                >
-                    <option value="moving_average">Moving Average</option>
-                    <option value="momentum">Momentum</option>
-                    <option value="mean_reversion">Mean Reversion</option>
-                </select>
-            </label>
-            {strategy === 'moving_average' && (
-                    <div>
-                        <label>
-                            Short window (days)
-                            <input
-                                type="number"
-                                min="1"
-                                step="1"
-                                required
-                                value={shortWindow}
-                                onChange={(event) => setShortWindow(event.target.value)}
-                            />
-                        </label>
-
-                        <label>
-                            Long window (days)
-                            <input
-                                type="number"
-                                min="1"
-                                step="1"
-                                required
-                                value={longWindow}
-                                onChange={(event) => setLongWindow(event.target.value)}
-                            />
-                        </label>
-                    </div>
-                )}
-
-                {strategy === 'momentum' && (
-                    <div>
-                        <label>
-                            Lookback (days)
-                            <input
-                                type="number"
-                                min="1"
-                                step="1"
-                                required
-                                value={lookback}
-                                onChange={(event) => setLookback(event.target.value)}
-                            />
-                        </label>
-                    </div>
-                )}
-
-                {strategy === 'mean_reversion' && (
-                    <div>
-                        <label>
-                            Mean window (days)
-                            <input
-                                type="number"
-                                min="1"
-                                step="1"
-                                required
-                                value={meanWindow}
-                                onChange={(event) => setMeanWindow(event.target.value)}
-                            />
-                        </label>
-
-                        <label>
-                            Entry distance (%)
-                            <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.1"
-                                required
-                                value={entryDistance}
-                                onChange={(event) => setEntryDistance(event.target.value)}
-                            />
-                        </label>
-
-                        <label>
-                            Exit distance (%)
-                            <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.1"
-                                required
-                                value={exitDistance}
-                                onChange={(event) => setExitDistance(event.target.value)}
-                            />
-                        </label>
-                    </div>
-                )}
-
-            {error && <p role="alert">{error}</p>}
-
-             <button type="submit" disabled={isLoading}>
-                {isLoading ? 'Running backtest…' : 'Run Backtest'}
-            </button>
-
-            <p role="status">
-                {isLoading ? 'Downloading prices and running the strategy…' : success}
-            </p>
-        </form>
-    )
+    if (![fields.cash, fields.costs, fields.riskFree].every(v => v.trim() !== '' && Number.isFinite(+v)) || +fields.cash <= 0 || +fields.costs < 0 || +fields.riskFree <= -100 || !integer(fields.periods)) { setError('Check capital, costs, annualization, and risk-free rate.'); return }
+    const request: BacktestRequest = { symbol: fields.symbol.trim().toUpperCase(), start: fields.start, end: fields.end, strategy, initial_cash: +fields.cash, cost_bps: +fields.costs, periods_per_year: +fields.periods, risk_free_rate: +fields.riskFree / 100 }
+    const abort = new AbortController()
+    controller.current = abort
+    setLoading(true); onRunning(true)
+    try {
+      const result = await submitBacktest(request, abort.signal)
+      onResult({ request, result, completedAt: new Date().toISOString() })
+    } catch (err) {
+      setError(abort.signal.aborted ? 'Stopped waiting. The server may still finish its calculation.' : err instanceof Error ? err.message : 'Backtest failed.')
+    } finally { controller.current = null; setLoading(false); onRunning(false) }
+  }
+  return <form className="settings-panel panel" onSubmit={handleSubmit}>
+    <div className="panel-heading"><span className="eyebrow">EXPERIMENT SETUP</span><h2>Build your run</h2></div>
+    <fieldset disabled={loading}>
+      <label>Symbol<input required maxLength={30} value={fields.symbol} onChange={e => update('symbol', e.target.value)} autoCapitalize="characters" spellCheck={false} /></label>
+      <div className="field-pair"><label>Start date<input type="date" required value={fields.start} onChange={e => update('start', e.target.value)} /></label><label>End date<input type="date" required value={fields.end} onChange={e => update('end', e.target.value)} /></label></div>
+      <p className="field-help">Daily prices · end date is exclusive</p>
+      <label>Strategy<select value={fields.strategy} onChange={e => update('strategy', e.target.value)}><option value="moving_average">Moving average crossover</option><option value="momentum">Momentum</option><option value="mean_reversion">Mean reversion</option></select></label>
+      <div className="parameter-box">
+        {fields.strategy === 'moving_average' ? <><p>Invest when the short average is above the long average.</p><div className="field-pair">{numeric('short', 'Short window', 1)}{numeric('long', 'Long window', 1)}</div></> : fields.strategy === 'momentum' ? <><p>Invest when price exceeds its value one lookback ago.</p>{numeric('lookback', 'Lookback · trading periods', 1)}</> : <><p>Buy below the rolling mean; exit as price recovers toward it.</p>{numeric('mean', 'Mean window · trading periods', 1)}<div className="field-pair">{numeric('entry', 'Entry distance %', 0, 'any')}{numeric('exit', 'Exit distance %', 0, 'any')}</div></>}
+      </div>
+      <div className="field-pair">{numeric('cash', 'Initial capital · USD', 0.01, 'any')}{numeric('costs', 'Cost · basis points', 0, 'any')}</div>
+      <p className="field-help">5 bps = 0.05% per unit of turnover.</p>
+      <details><summary>Annualization settings</summary><div className="field-pair">{numeric('periods', 'Periods / year', 1)}{numeric('riskFree', 'Risk-free rate %', -99.99, 'any')}</div></details>
+      <button className="primary-button" type="submit">{loading ? 'Running experiment…' : 'Run backtest'} <span aria-hidden="true">↗</span></button>
+    </fieldset>
+    {loading && <button type="button" className="quiet-button" onClick={() => controller.current?.abort()}>Stop waiting</button>}
+    <div role="status" className="form-status">{loading ? 'Downloading prices and calculating performance…' : 'Ready for your next hypothesis.'}</div>
+    {error && <p role="alert" className="error-message">{error}</p>}
+    <div className="assumptions"><strong>Simulation assumptions</strong><p>Long or flat · one-period signal delay · close-to-close returns. Strategy costs included; buy-and-hold shown before costs.</p></div>
+  </form>
 }
