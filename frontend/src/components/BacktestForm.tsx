@@ -43,7 +43,7 @@ export default function BacktestForm({ onResult, onEdit, onRunning }: Props) {
     } finally { controller.current = null; setLoading(false); onRunning(false) }
   }
   return <form className="settings-panel panel" onSubmit={handleSubmit}>
-    <div className="panel-heading"><span className="eyebrow">EXPERIMENT SETUP</span><h2>Build your run</h2></div>
+    <div className="panel-heading"><span className="eyebrow">CONFIGURATION</span><h2>Backtest parameters</h2></div>
     <fieldset disabled={loading}>
       <label>Symbol<input required maxLength={30} value={fields.symbol} onChange={e => update('symbol', e.target.value)} autoCapitalize="characters" spellCheck={false} /></label>
       <div className="field-pair"><label>Start date<input type="date" required value={fields.start} onChange={e => update('start', e.target.value)} /></label><label>End date<input type="date" required value={fields.end} onChange={e => update('end', e.target.value)} /></label></div>

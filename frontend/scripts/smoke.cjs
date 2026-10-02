@@ -25,7 +25,7 @@ async function main() {
       } })
     })
     await page.goto(process.env.BACKTEST_URL || 'http://127.0.0.1:5175')
-    await page.getByRole('heading', { name: 'One idea. A clearer picture.' }).waitFor()
+    await page.getByRole('heading', { name: 'An idea, measured.' }).waitFor()
     const run = page.getByRole('button', { name: 'Run backtest' })
     await run.click()
     await page.getByText('LAST SUCCESSFUL RUN').waitFor()
