@@ -53,3 +53,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  padding: 20px;
+  background: #10141c;
+  border: 1px solid #303b4c;
+  border-radius: 8px;
+}
+
+.metric-card dt {
+  color: #aab5c4;
+  font-size: 0.875rem;
+}
+
+.metric-card dd {
+  margin: 12px 0 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
