@@ -12,7 +12,7 @@ export function isBacktestResponse(v: unknown): v is BacktestResponse {
 export async function submitBacktest(request: BacktestRequest, signal: AbortSignal): Promise<BacktestResponse> {
   let response: Response
   try { response = await fetch('/api/backtests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal }) }
-  catch (error) { if (signal.aborted) throw error; throw new Error('Unable to reach the API. Check that the Python server is running on port 8000.') }
+  catch (error) { if (signal.aborted) throw error; throw new Error('Unable to reach the API. Check that the launcher is running (or your development API on port 8000).') }
   const body: unknown = await response.json().catch(() => null)
   if (!response.ok) {
     const detail = object(body) ? body.detail : null

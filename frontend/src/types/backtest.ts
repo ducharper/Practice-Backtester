@@ -1,4 +1,6 @@
 export type BacktestResponse = {
+    run_id?: string
+    completed_at?: string
     summary: Record<string, number | null>
     equity: {
         date: string

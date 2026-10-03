@@ -1,6 +1,10 @@
 from math import isfinite
+from pathlib import Path
+import sqlite3
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.staticfiles import StaticFiles
+from api import history
 
 from api.schemas import BacktestRequest, BacktestResponse
 from api.strategy_factory import create_strategy
@@ -10,6 +14,7 @@ from backtester.errors import MarketDataUnavailableError
 app = FastAPI(title="Practice Backtester")
 
 @app.post("/backtests", response_model=BacktestResponse)
+@app.post("/api/backtests", response_model=BacktestResponse)
 def create_backtest(request: BacktestRequest) -> dict:
     strategy = create_strategy(request.strategy)
 
@@ -58,8 +63,56 @@ def create_backtest(request: BacktestRequest) -> dict:
         numeric_value = float(value)
         clean_summary[name] = (numeric_value if isfinite(numeric_value) else None)
 
-    return {
+    result = BacktestResponse.model_validate({
         "summary": clean_summary,
         "equity": equity,
         "trades": trades,
-    }
+    }).model_dump(mode='json', exclude={'run_id', 'completed_at'})
+    try:
+        run_id, completed_at = history.save_run(request.model_dump(mode='json'), result)
+    except (sqlite3.Error, OSError) as exc:
+        raise HTTPException(503, 'The calculation completed, but could not be saved. Check available disk space and data folder permissions.') from exc
+    return {**result, 'run_id': run_id, 'completed_at': completed_at}
+
+
+@app.get('/health')
+def health():
+    return {'app': 'practice-backtester', 'workspace': str(Path(__file__).resolve().parents[1])}
+
+
+@app.get('/runs')
+@app.get('/api/runs')
+def runs(limit: int = Query(30, ge=1, le=100), offset: int = Query(0, ge=0)):
+    try:
+        return history.list_runs(limit, offset)
+    except (sqlite3.Error, OSError) as exc:
+        raise HTTPException(503, 'Saved runs are unavailable. Check the local database.') from exc
+
+
+@app.get('/runs/{run_id}')
+@app.get('/api/runs/{run_id}')
+def read_run(run_id: str):
+    try:
+        run = history.get_run(run_id)
+    except (sqlite3.Error, OSError) as exc:
+        raise HTTPException(503, 'Saved runs are unavailable. Check the local database.') from exc
+    if run is None:
+        raise HTTPException(404, 'Saved run not found.')
+    return run
+
+
+@app.delete('/runs/{run_id}', status_code=204)
+@app.delete('/api/runs/{run_id}', status_code=204)
+def remove_run(run_id: str):
+    try:
+        deleted = history.delete_run(run_id)
+    except (sqlite3.Error, OSError) as exc:
+        raise HTTPException(503, 'Could not remove the saved run.') from exc
+    if not deleted:
+        raise HTTPException(404, 'Saved run not found.')
+
+
+# The launcher builds the frontend first, then serves everything on one local port.
+frontend = Path(__file__).resolve().parents[1] / 'frontend' / 'dist'
+if frontend.is_dir():
+    app.mount('/', StaticFiles(directory=frontend, html=True), name='frontend')

@@ -80,6 +80,8 @@ class TradeResponse(BaseModel):
     net_return: float
 
 class BacktestResponse(BaseModel):
+    run_id: str | None = None
+    completed_at: str | None = None
     summary: dict[str, float | None]
     equity: list[EquityPoint]
     trades: list[TradeResponse]

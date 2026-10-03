@@ -10,6 +10,7 @@ async function main() {
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     let status = 200, emptyTrades = false, submitted
+    await page.route('**/api/runs?*', route => route.fulfill({ json: [] }))
     await page.route('**/api/backtests', async route => {
       submitted = route.request().postDataJSON()
       await new Promise(resolve => setTimeout(resolve, 150))
@@ -28,7 +29,7 @@ async function main() {
     await page.getByRole('heading', { name: 'An idea, measured.' }).waitFor()
     const run = page.getByRole('button', { name: 'Run backtest' })
     await run.click()
-    await page.getByText('LAST SUCCESSFUL RUN').waitFor()
+    await page.getByText('RUN RESULTS').waitFor()
     assert.equal(submitted.strategy.name, 'moving_average')
     assert.equal(submitted.initial_cash, 10000)
     await page.getByRole('img', { name: /equity chart/ }).waitFor()

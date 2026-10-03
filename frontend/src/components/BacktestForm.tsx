@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { submitBacktest } from '../lib/api'
 import type { CompletedRun, StrategyConfig, BacktestRequest } from '../types/experiment'
-type Props = { onResult: (run: CompletedRun) => void; onEdit: () => void; onRunning: (running: boolean) => void }
-export default function BacktestForm({ onResult, onEdit, onRunning }: Props) {
-  const [fields, setFields] = useState({ symbol: 'AAPL', start: '2020-01-01', end: '2026-01-01', strategy: 'moving_average', short: '20', long: '50', lookback: '20', mean: '20', entry: '5', exit: '1', cash: '10000', costs: '5', periods: '252', riskFree: '4' })
+type Props = { disabled?: boolean; initialRequest?: BacktestRequest; onResult: (run: CompletedRun) => void; onEdit: () => void; onRunning: (running: boolean) => void }
+export default function BacktestForm({ disabled = false, initialRequest: r, onResult, onEdit, onRunning }: Props) {
+  const [fields, setFields] = useState({ symbol: r?.symbol ?? 'AAPL', start: r?.start ?? '2020-01-01', end: r?.end ?? '2026-01-01', strategy: r?.strategy.name ?? 'moving_average', short: String(r?.strategy.name === 'moving_average' ? r.strategy.short_window : 20), long: String(r?.strategy.name === 'moving_average' ? r.strategy.long_window : 50), lookback: String(r?.strategy.name === 'momentum' ? r.strategy.lookback : 20), mean: String(r?.strategy.name === 'mean_reversion' ? r.strategy.mean_window : 20), entry: String(r?.strategy.name === 'mean_reversion' ? r.strategy.entry_distance * 100 : 5), exit: String(r?.strategy.name === 'mean_reversion' ? r.strategy.exit_distance * 100 : 1), cash: String(r?.initial_cash ?? 10000), costs: String(r?.cost_bps ?? 5), periods: String(r?.periods_per_year ?? 252), riskFree: String((r?.risk_free_rate ?? .04) * 100) })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const controller = useRef<AbortController | null>(null)
@@ -15,7 +15,7 @@ export default function BacktestForm({ onResult, onEdit, onRunning }: Props) {
   }
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (controller.current) return
+    if (controller.current || disabled) return
     setError('')
     const integer = (v: string) => v.trim() !== '' && Number.isInteger(Number(v)) && Number(v) > 0
     if (!fields.symbol.trim() || !fields.start || !fields.end || fields.start >= fields.end) { setError('Enter a symbol and a start date before the end date.'); return }
@@ -37,14 +37,14 @@ export default function BacktestForm({ onResult, onEdit, onRunning }: Props) {
     setLoading(true); onRunning(true)
     try {
       const result = await submitBacktest(request, abort.signal)
-      onResult({ request, result, completedAt: new Date().toISOString() })
+      onResult({ id: result.run_id, request, result, completedAt: result.completed_at ?? new Date().toISOString() })
     } catch (err) {
       setError(abort.signal.aborted ? 'Stopped waiting. The server may still finish its calculation.' : err instanceof Error ? err.message : 'Backtest failed.')
     } finally { controller.current = null; setLoading(false); onRunning(false) }
   }
   return <form className="settings-panel panel" onSubmit={handleSubmit}>
     <div className="panel-heading"><span className="eyebrow">CONFIGURATION</span><h2>Backtest parameters</h2></div>
-    <fieldset disabled={loading}>
+    <fieldset disabled={loading || disabled}>
       <label>Symbol<input required maxLength={30} value={fields.symbol} onChange={e => update('symbol', e.target.value)} autoCapitalize="characters" spellCheck={false} /></label>
       <div className="field-pair"><label>Start date<input type="date" required value={fields.start} onChange={e => update('start', e.target.value)} /></label><label>End date<input type="date" required value={fields.end} onChange={e => update('end', e.target.value)} /></label></div>
       <p className="field-help">Daily prices · end date is exclusive</p>
