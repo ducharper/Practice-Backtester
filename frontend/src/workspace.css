@@ -451,3 +451,19 @@
  .parameter-footer{gap:12px;flex-wrap:wrap}
  .parameter-popover .parameter-footer .primary-button{min-width:140px;width:140px}
 }
+
+/* Source settings form one full-width row, not loose grid cells. */
+.parameter-popover .settings-panel fieldset{column-gap:0;row-gap:16px}
+.source-section{grid-column:1 / -1;padding-bottom:14px;border-bottom:1px solid #35362f}
+.source-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.parameter-popover .source-fields label{margin-bottom:0}
+.parameter-popover .settings-panel .source-guidance{margin:10px 0 0;font-size:10px;color:#93978a}
+.parameter-popover .settings-panel .source-guidance summary{width:fit-content;padding-block:3px}
+.parameter-popover .settings-panel .source-guidance[open]>summary{margin-bottom:6px}
+.source-guidance p{font-size:11px;line-height:1.65;max-width:560px}
+.parameter-popover .settings-panel{padding:18px 20px;background:linear-gradient(135deg,#1b1d18,#171914);border-color:#3a3e32;border-radius:10px}
+.parameter-popover .settings-panel .form-section h3{margin-bottom:12px;font-weight:500;color:#dedfd4}
+.parameter-popover .settings-panel label{margin-bottom:10px}
+.parameter-popover .settings-panel .form-section:last-of-type{padding-top:16px}
+.parameter-popover .parameter-footer{padding-top:14px;margin-top:16px}
+@media(max-width:600px){.source-fields{grid-template-columns:1fr;gap:12px}.parameter-popover .settings-panel{padding:16px}}

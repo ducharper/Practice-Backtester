@@ -5,6 +5,10 @@ const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFi
 const date = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
 export function isBacktestResponse(v: unknown): v is BacktestResponse {
   if (!object(v) || !object(v.summary) || !Array.isArray(v.equity) || !Array.isArray(v.trades)) return false
+  if (v.data_info != null) {
+    const info = v.data_info
+    if (!object(info) || !['ibkr', 'yahoo'].includes(String(info.source)) || typeof info.price_basis !== 'string' || !date(info.first_date) || !date(info.last_date) || !finite(info.bar_count) || typeof info.fetched_at !== 'string' || !Array.isArray(info.warnings) || !info.warnings.every(w => typeof w === 'string')) return false
+  }
   return Object.values(v.summary).every(n => n === null || finite(n)) && v.equity.length > 0 &&
     v.equity.every(p => object(p) && date(p.date) && finite(p.strategy) && finite(p.benchmark)) &&
     v.trades.every(t => object(t) && date(t.entry_date) && date(t.exit_date) && finite(t.entry_price) && finite(t.exit_price) && finite(t.net_return) && finite(t.holding_period))

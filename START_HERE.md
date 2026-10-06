@@ -16,11 +16,21 @@ Delete removes a run from the visible history after confirmation. Records are so
 
 The `data` folder is ignored by Git. To back up saved runs, stop the launcher and copy `data/backtests.sqlite3` somewhere safe. GitHub backups of code do **not** include these results. Do not put the local app directly on the public internet: authentication is not implemented.
 
+## IBKR historical prices
+
+In **Edit parameters**, select **Interactive Brokers · TWS** (default for new forms). Keep paper TWS logged in with socket clients enabled on **7497** and **Read-Only API** checked. The app uses localhost and client ID **49**; it never submits orders. Yahoo remains an explicit alternative. Failed IBKR requests never fall back silently.
+
+Initially supported: daily regular-session prices for USD stocks and ETFs via SMART. For ambiguous symbols, specify the primary exchange (NASDAQ, NYSE, etc.). Other currencies, futures, options and intraday bars are not supported. Historical availability depends on permissions, subscriptions and instrument history; it is not guaranteed.
+
+IBKR TRADES prices adjust for splits but **exclude dividends**; Yahoo adjusts for both. Compare results using the same provider. Actual coverage, bar count, retrieval time, price basis and warnings are saved with each run. Today's unfinished session is excluded. Ranges download in overlapping yearly segments (maximum 20 years). Errors or empty segments prevent partial backtests. Only one IBKR download runs at a time. No credentials are stored.
+
+Restart the launcher after updating. Old saved runs remain readable and default to Yahoo when reopened. Saved results work without TWS; new calculations do not use cached prices.
+
 ## Development
 
 ### Optional IBKR connection check
 
-The initial TWS connectivity check is `check_ibkr.py`. It connects only to local port 7497 with client ID 47, requests the server time, then disconnects. Keep **Read-Only API** checked in TWS. This does not yet switch backtests to IBKR data or verify historical-data permissions.
+The standalone TWS connectivity check is `check_ibkr.py`. It connects only to local port 7497 with client ID 47, requests server time, then disconnects. Keep **Read-Only API** checked. This check does not verify historical-data permissions; choose IBKR in the app to run a historical-data backtest.
 
 Install the Python library from the official IBKR API installer, not the unrelated PyPI download. For the locally installed version:
 

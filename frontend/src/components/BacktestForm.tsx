@@ -6,6 +6,8 @@ type Props = { disabled?: boolean; initialRequest?: BacktestRequest; onResult: (
 export default function BacktestForm({ disabled = false, initialRequest: r, onResult, onEdit, onRunning }: Props) {
   const [fields, setFields] = useState({ symbol: r?.symbol ?? 'AAPL', start: r?.start ?? '2020-01-01', end: r?.end ?? '2026-01-01', strategy: r?.strategy.name ?? 'moving_average', short: String(r?.strategy.name === 'moving_average' ? r.strategy.short_window : 20), long: String(r?.strategy.name === 'moving_average' ? r.strategy.long_window : 50), lookback: String(r?.strategy.name === 'momentum' ? r.strategy.lookback : 20), mean: String(r?.strategy.name === 'mean_reversion' ? r.strategy.mean_window : 20), entry: String(r?.strategy.name === 'mean_reversion' ? r.strategy.entry_distance * 100 : 5), exit: String(r?.strategy.name === 'mean_reversion' ? r.strategy.exit_distance * 100 : 1), cash: String(r?.initial_cash ?? 10000), costs: String(r?.cost_bps ?? 5), periods: String(r?.periods_per_year ?? 252), riskFree: String((r?.risk_free_rate ?? .04) * 100) })
   const [error, setError] = useState('')
+  const [source, setSource] = useState<'yahoo' | 'ibkr'>(r ? r.data_source ?? 'yahoo' : 'ibkr')
+  const [exchange, setExchange] = useState(r?.ibkr_primary_exchange ?? '')
   const [loading, setLoading] = useState(false)
   const controller = useRef<AbortController | null>(null)
   useEffect(() => () => controller.current?.abort(), [])
@@ -32,6 +34,8 @@ export default function BacktestForm({ disabled = false, initialRequest: r, onRe
     }
     if (![fields.cash, fields.costs, fields.riskFree].every(v => v.trim() !== '' && Number.isFinite(+v)) || +fields.cash <= 0 || +fields.costs < 0 || +fields.riskFree <= -100 || !integer(fields.periods)) { setError('Check capital, costs, annualization, and risk-free rate.'); return }
     const request: BacktestRequest = { symbol: fields.symbol.trim().toUpperCase(), start: fields.start, end: fields.end, strategy, initial_cash: +fields.cash, cost_bps: +fields.costs, periods_per_year: +fields.periods, risk_free_rate: +fields.riskFree / 100 }
+    request.data_source = source
+    request.ibkr_primary_exchange = source === 'ibkr' ? exchange.trim().toUpperCase() : ''
     const abort = new AbortController()
     controller.current = abort
     setLoading(true); onRunning(true)
@@ -45,6 +49,13 @@ export default function BacktestForm({ disabled = false, initialRequest: r, onRe
   return <form className="settings-panel panel" onSubmit={handleSubmit}>
     <div className="panel-heading"><h2>Backtest parameters</h2></div>
     <fieldset disabled={loading || disabled}>
+      <div className="source-section">
+        <div className="source-fields">
+          <label>Price source<select value={source} onChange={e => { setSource(e.target.value as 'yahoo' | 'ibkr'); setError(''); onEdit() }}><option value="ibkr">Interactive Brokers · TWS</option><option value="yahoo">Yahoo Finance</option></select></label>
+          {source === 'ibkr' && <label>Primary exchange · optional<input maxLength={30} pattern="[A-Za-z0-9.]*" placeholder="NASDAQ or NYSE" value={exchange} onChange={e => { setExchange(e.target.value); setError(''); onEdit() }} /></label>}
+        </div>
+        {source === 'ibkr' && <details className="source-guidance"><summary>TWS connection & data notes</summary><p>Keep paper TWS open on port 7497 with Read-Only API enabled. US stocks & ETFs · USD · regular sessions. Split-adjusted prices exclude dividends. Long downloads may take several minutes.</p></details>}
+      </div>
       <section className="form-section" aria-labelledby="market-heading"><h3 id="market-heading">Market & dates</h3><label>Symbol<input required maxLength={30} value={fields.symbol} onChange={e => update('symbol', e.target.value)} autoCapitalize="characters" spellCheck={false} /></label>
       <div className="field-pair"><label>Start date<input type="date" required value={fields.start} onChange={e => update('start', e.target.value)} /></label><label>End date<input type="date" required value={fields.end} onChange={e => update('end', e.target.value)} /></label></div>
       <p className="field-help">Daily prices · end date is exclusive</p>

@@ -47,6 +47,8 @@ class BacktestRequest(BaseModel):
     )
 
     symbol: str = Field(min_length=1)
+    data_source: Literal['yahoo', 'ibkr'] = 'yahoo'
+    ibkr_primary_exchange: str = Field(default='', max_length=30, pattern=r'^[A-Za-z0-9.]*$')
     start: date
     end: date
 
@@ -79,7 +81,18 @@ class TradeResponse(BaseModel):
     holding_period: int
     net_return: float
 
+class DataInfo(BaseModel):
+    source: Literal['yahoo', 'ibkr']
+    price_basis: str
+    first_date: date
+    last_date: date
+    bar_count: int
+    fetched_at: str
+    warnings: list[str]
+
+
 class BacktestResponse(BaseModel):
+    data_info: DataInfo | None = None
     run_id: str | None = None
     completed_at: str | None = None
     summary: dict[str, float | None]

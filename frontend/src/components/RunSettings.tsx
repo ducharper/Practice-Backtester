@@ -10,6 +10,8 @@ export default function RunSettings({ request }: { request: BacktestRequest }) {
       ? [['Lookback', `${strategy.lookback} periods`]]
       : [['Mean window', `${strategy.mean_window} periods`], ['Entry distance', percent(strategy.entry_distance)], ['Exit distance', percent(strategy.exit_distance)]]
   const settings = [
+    ['Price source', request.data_source === 'ibkr' ? 'IBKR · regular-session TRADES' : 'Yahoo Finance'],
+    ...(request.data_source === 'ibkr' ? [['Primary exchange', request.ibkr_primary_exchange || 'SMART resolution']] : []),
     ['Symbol', request.symbol], ['Strategy', strategyNames[strategy.name]],
     ['Start date', request.start], ['End date (exclusive)', request.end],
     ...parameters, ['Initial capital', money(request.initial_cash)],

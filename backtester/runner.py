@@ -1,5 +1,6 @@
 import pandas as pd
 import yfinance as yf
+from datetime import datetime, timezone
 
 from backtester.engine import BackTestEngine
 from backtester.report import summarize_backtest
@@ -16,15 +17,18 @@ def run_backtest(
         cost_bps: float,
         periods_per_year: int,
         risk_free_rate: float,
+        data_source: str = 'yahoo',
+        ibkr_primary_exchange: str = '',
 ) -> tuple[pd.DataFrame, dict[str, float | int], pd.DataFrame]:
     """ Reusable function that runs the backtest """
 
-    data = yf.download(
-        symbol,
-        start=start,
-        end=end,
-        multi_level_index=False
-    )
+    if data_source == 'ibkr':
+        from backtester.ibkr_data import download_ibkr
+        data = download_ibkr(symbol, start, end, ibkr_primary_exchange)
+    elif data_source == 'yahoo':
+        data = yf.download(symbol, start=start, end=end, multi_level_index=False, auto_adjust=True)
+    else:
+        raise MarketDataUnavailableError('Unknown data source.')
 
     if data is None or data.empty:
         raise MarketDataUnavailableError(
@@ -35,6 +39,11 @@ def run_backtest(
 
     bt = BackTestEngine(data, strategy, initial_cash, cost_bps)
     result = bt.run()
+    result.attrs['data_info'] = data.attrs.get('data_info', {
+        'source': 'yahoo', 'price_basis': 'Split- and dividend-adjusted prices',
+        'first_date': data.index[0].date().isoformat(), 'last_date': data.index[-1].date().isoformat(),
+        'bar_count': len(data), 'fetched_at': datetime.now(timezone.utc).isoformat(), 'warnings': [],
+    })
     summary = summarize_backtest(result, periods_per_year, risk_free_rate)
     ledger = build_trade_ledger(result)
 

@@ -28,6 +28,8 @@ def create_backtest(request: BacktestRequest) -> dict:
             cost_bps=request.cost_bps,
             periods_per_year=request.periods_per_year,
             risk_free_rate=request.risk_free_rate,
+            data_source=request.data_source,
+            ibkr_primary_exchange=request.ibkr_primary_exchange,
         )
     except MarketDataUnavailableError as exception:
         raise HTTPException(
@@ -64,6 +66,7 @@ def create_backtest(request: BacktestRequest) -> dict:
         clean_summary[name] = (numeric_value if isfinite(numeric_value) else None)
 
     result = BacktestResponse.model_validate({
+        "data_info": result.attrs.get('data_info'),
         "summary": clean_summary,
         "equity": equity,
         "trades": trades,
