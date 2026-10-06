@@ -1,4 +1,7 @@
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import Journal, { JournalReference } from './components/Journal'
+import { JournalIcon, PencilIcon } from './components/WorkspaceIcons'
+import StartScreen from './components/StartScreen'
 import ChromeLogo from './components/ChromeLogo'
 import BacktestForm from './components/BacktestForm'
 import PerformanceChart from './components/PerformanceChart'
@@ -12,9 +15,61 @@ import './workspace.css'
 export default function App() {
   const drawer = useRef<HTMLDialogElement>(null)
   const editButton = useRef<HTMLButtonElement>(null)
+  const closing = useRef(false)
+  const [referenceOpen, setReferenceOpen] = useState(false)
   const [editing, setEditing] = useState(false)
-  function openParameters() { setEditing(true); drawer.current?.showModal() }
-  function closeParameters() { drawer.current?.close(); setEditing(false); editButton.current?.focus() }
+  const openingAnimations = useRef<Animation[]>([])
+  function alignEditorControls() {
+    const anchor = editButton.current?.getBoundingClientRect()
+    const controls = drawer.current?.querySelector<HTMLElement>('.editor-orbs')
+    if (anchor && controls) {
+      controls.style.top = `${anchor.top}px`
+      controls.style.right = `${window.innerWidth - anchor.right}px`
+    }
+  }
+  useLayoutEffect(() => {
+    if (!editing) return
+    alignEditorControls()
+    window.addEventListener('resize', alignEditorControls)
+    return () => window.removeEventListener('resize', alignEditorControls)
+  }, [editing])
+  function fadeCards(selector: string) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    drawer.current!.querySelectorAll<HTMLElement>(selector).forEach(card => {
+      openingAnimations.current.push(card.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: 'ease-out' }))
+    })
+  }
+  function openParameters() {
+    if (closing.current) return
+    openingAnimations.current = []
+    setEditing(true); drawer.current?.showModal()
+    alignEditorControls()
+    fadeCards('.settings-panel')
+  }
+  useLayoutEffect(() => {
+    if (referenceOpen && drawer.current?.open) fadeCards('.journal-reference')
+  }, [referenceOpen])
+  async function closeParameters() {
+    const dialog = drawer.current
+    if (!dialog?.open || closing.current) return
+    closing.current = true
+    openingAnimations.current.forEach(animation => animation.cancel())
+    const animations: Animation[] = []
+    try {
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        dialog.classList.add('is-closing')
+        const cards = dialog.querySelectorAll<HTMLElement>('.settings-panel, .journal-reference')
+        cards.forEach(card => animations.push(card.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-out', fill: 'forwards' })))
+        await Promise.allSettled(animations.map(animation => animation.finished))
+      }
+    } finally {
+      dialog.close()
+      animations.forEach(animation => animation.cancel())
+      dialog.classList.remove('is-closing')
+      closing.current = false
+      setReferenceOpen(false); setEditing(false); editButton.current?.focus()
+    }
+  }
   const [run, setRun] = useState<CompletedRun | null>(null)
   const [dirty, setDirty] = useState(false)
   const [running, setRunning] = useState(false)
@@ -23,31 +78,33 @@ export default function App() {
   const [formRevision, setFormRevision] = useState(0)
   const [formRequest, setFormRequest] = useState<CompletedRun['request']>()
   const [tab, setTab] = useState<'overview' | 'trades' | 'details'>('overview')
-  const [workspaceTab, setWorkspaceTab] = useState<'backtest' | 'saved'>('backtest')
+  const [workspaceTab, setWorkspaceTab] = useState<'backtest' | 'saved' | 'journal'>('backtest')
   const primaryMetrics = ['Total Return', 'Benchmark Return', 'Sharpe Ratio', 'Max Drawdown']
   function receive(completed: CompletedRun) { setRun(completed); closeParameters(); setDirty(false); setHistoryRevision(n => n + 1) }
   function openSaved(saved: CompletedRun) { setRun(saved); setFormRequest(saved.request); setFormRevision(n => n + 1); setDirty(false); setWorkspaceTab('backtest') }
   return <div className="app-shell">
     <header className="topbar"><a href="#main-content" className="skip-link">Skip to results</a><ChromeLogo /><div className="header-controls">
       <div className="tabs workspace-tabs" role="tablist" aria-label="Workspace">
-        {(['backtest', 'saved'] as const).map(name => <button className="parameter-orb nav-orb" aria-label={name === 'backtest' ? 'Backtest' : 'Saved runs'} data-tooltip={name === 'backtest' ? 'Backtest' : 'Saved runs'} key={name} id={`workspace-${name}-tab`} role="tab" aria-controls={`workspace-${name}-panel`} aria-selected={workspaceTab === name} tabIndex={workspaceTab === name ? 0 : -1} onClick={() => setWorkspaceTab(name)} onKeyDown={event => {
+        {(['backtest', 'saved', 'journal'] as const).map(name => <button className="parameter-orb nav-orb" aria-label={name === 'backtest' ? 'Backtest' : name === 'saved' ? 'Saved runs' : 'Journal'} data-tooltip={name === 'backtest' ? 'Backtest' : name === 'saved' ? 'Saved runs' : 'Journal'} key={name} id={`workspace-${name}-tab`} role="tab" aria-controls={`workspace-${name}-panel`} aria-selected={workspaceTab === name} tabIndex={workspaceTab === name ? 0 : -1} onClick={() => setWorkspaceTab(name)} onKeyDown={event => {
           if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
             event.preventDefault()
-            const next = event.key === 'Home' ? 'backtest' : event.key === 'End' ? 'saved' : name === 'backtest' ? 'saved' : 'backtest'
+            const order = ['backtest', 'saved', 'journal'] as const
+            const next = event.key === 'Home' ? 'backtest' : event.key === 'End' ? 'journal' : order[(order.indexOf(name) + (event.key === 'ArrowRight' ? 1 : 2)) % 3]
             setWorkspaceTab(next)
             document.getElementById(`workspace-${next}-tab`)?.focus()
           }
-        }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{name === 'backtest' ? <><path d="M4 4v16h16" /><path d="m7 14 4-5 4 3 5-7" /></> : <><rect x="4" y="8" width="16" height="12" rx="2" /><path d="M3 4h18v4H3zM9 12h6" /></>}</svg></button>)}
+        }}>{name === 'journal' ? <JournalIcon /> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{name === 'backtest' ? <><path d="M4 4v16h16" /><path d="m7 14 4-5 4 3 5-7" /></> : <><rect x="4" y="8" width="16" height="12" rx="2" /><path d="M3 4h18v4H3zM9 12h6" /></>}</svg>}</button>)}
       </div>
-      <button ref={editButton} className="edit-parameters parameter-orb" aria-label="Edit parameters" data-tooltip="Edit parameters" aria-haspopup="dialog" aria-expanded={editing} onClick={openParameters}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" /></svg></button></div></header>
+      <button ref={editButton} className="edit-parameters parameter-orb" aria-label="Edit parameters" data-tooltip="Edit parameters" aria-haspopup="dialog" aria-expanded={editing} onClick={openParameters}><PencilIcon /></button></div></header>
     <main className="workspace">
+      <div id="workspace-journal-panel" role="tabpanel" aria-labelledby="workspace-journal-tab" hidden={workspaceTab !== 'journal'}><Journal /></div>
       <div id="workspace-saved-panel" role="tabpanel" aria-labelledby="workspace-saved-tab" hidden={workspaceTab !== 'saved'}>
         {workspaceTab === 'saved' && <RunHistory key={`history-${historyRevision}`} revision={historyRevision} busy={running} activeId={run?.id} onWorking={setHistoryWorking} onOpen={openSaved} onDelete={id => { if (run?.id === id) setRun(null) }} />}
       </div>
       <div id="workspace-backtest-panel" role="tabpanel" aria-labelledby="workspace-backtest-tab" hidden={workspaceTab !== 'backtest'}>
       <div className="workspace-body">
         <div id="main-content" tabIndex={-1} className="results-panel" aria-label="Backtest results" aria-busy={running}>
-          {!run ? <section className="panel welcome-panel"><div className="empty-toolbar"><span>PERFORMANCE</span><span>NO RUN SELECTED</span></div><div className="empty-content"><span className="eyebrow">BACKTEST / NEW</span><h2>{running ? 'Calculating results.' : <>An idea, <em>measured.</em></>}</h2><p>{running ? 'Fetching historical prices and calculating returns.' : 'Choose a symbol, date range, and strategy. Run a backtest to inspect performance, drawdowns, and completed trades.'}</p><button className="empty-instruction quiet-button" onClick={openParameters}>Configure backtest ↗</button></div><div className="empty-features"><div><b>01 / PERFORMANCE</b><span>Strategy vs. buy-and-hold</span></div><div><b>02 / RISK</b><span>Returns and drawdowns</span></div><div><b>03 / EXECUTION</b><span>Completed trade ledger</span></div></div></section> : <>
+          {!run ? <StartScreen running={running} onConfigure={openParameters} onSaved={() => setWorkspaceTab('saved')} onJournal={() => setWorkspaceTab('journal')} /> : <>
             <div className="run-heading"><div><span className="eyebrow">RUN RESULTS</span><h2>{run.request.symbol} <span> / {strategyNames[run.request.strategy.name]}</span></h2><p>{run.request.start} → {run.request.end} · {money(run.request.initial_cash)} capital · {run.request.cost_bps} bps</p></div><span className="complete-badge">Completed {new Date(run.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span></div>
             {(dirty || running) && <p className="notice" role="status">{running ? 'A new run is in progress. The results below belong to your last successful run.' : 'Settings changed. Run again to update the results below.'}</p>}
             <dl className="metrics-grid">{primaryMetrics.map(name => <div className="metric-card" key={name}><dt>{name}</dt><dd>{metric(name, run.result.summary[name])}</dd><span>{name === 'Total Return' ? 'After strategy costs' : name === 'Benchmark Return' ? 'Buy-and-hold · before costs' : name === 'Sharpe Ratio' ? 'Risk-adjusted performance' : 'Largest peak-to-trough decline'}</span></div>)}</dl>
@@ -70,9 +127,11 @@ export default function App() {
         </div>
       </div></div><footer className="workspace-footer">Practice Backtester <span>Daily prices · Results saved locally</span></footer>
     </main>
-    <dialog ref={drawer} className="parameter-drawer parameter-popover" aria-label="Edit backtest parameters" onClose={() => setEditing(false)} onCancel={event => { event.preventDefault(); closeParameters() }} onClick={event => { const bounds = event.currentTarget.getBoundingClientRect(); if (event.target === event.currentTarget && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) closeParameters() }}>
-      <div className="drawer-heading"><div><span className="eyebrow">BACKTEST SETUP</span><span className="editor-hint">Adjust your inputs. Keep your place.</span></div><button className="parameter-orb close-orb" onClick={closeParameters} aria-label="Close parameters" title="Close parameters"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button></div>
+    <dialog ref={drawer} className={`parameter-drawer parameter-popover${referenceOpen ? ' with-journal' : ''}`} aria-label="Edit backtest parameters" onClose={() => setEditing(false)} onCancel={event => { event.preventDefault(); closeParameters() }} onClick={event => { const bounds = event.currentTarget.getBoundingClientRect(); if (event.target === event.currentTarget && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) closeParameters() }}>
+      <div className="drawer-heading"><div className="editor-orbs"><button className="parameter-orb" aria-label="Quick journal" aria-expanded={referenceOpen} onClick={() => setReferenceOpen(value => !value)} title="Quick journal"><JournalIcon /></button><button className="parameter-orb close-orb" aria-pressed="true" onClick={closeParameters} aria-label="Close parameters" title="Close parameters"><PencilIcon /></button></div></div>
+      <div className="editor-content">{referenceOpen && <JournalReference />}<div>
       <BacktestForm key={`form-${formRevision}`} disabled={historyWorking} initialRequest={formRequest} onResult={receive} onEdit={() => setDirty(true)} onRunning={setRunning} />
+      </div></div>
     </dialog>
   </div>
 }

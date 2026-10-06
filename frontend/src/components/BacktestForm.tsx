@@ -55,11 +55,11 @@ export default function BacktestForm({ disabled = false, initialRequest: r, onRe
       </section><section className="form-section" aria-labelledby="capital-heading"><h3 id="capital-heading">Capital & costs</h3><div className="field-pair">{numeric('cash', 'Initial capital · USD', 0.01, 'any')}{numeric('costs', 'Cost · basis points', 0, 'any')}</div>
       <p className="field-help">5 bps = 0.05% per unit of turnover.</p>
       <div className="annualization-fields"><div className="field-pair">{numeric('periods', 'Periods / year', 1)}{numeric('riskFree', 'Risk-free rate %', -99.99, 'any')}</div></div></section>
-      <button className="primary-button" type="submit">{loading ? 'Running experiment…' : 'Run backtest'} <span aria-hidden="true">↗</span></button>
+
     </fieldset>
     {loading && <button type="button" className="quiet-button" onClick={() => controller.current?.abort()}>Stop waiting</button>}
     <div role="status" className="form-status">{loading ? 'Downloading prices and calculating performance…' : ''}</div>
     {error && <p role="alert" className="error-message">{error}</p>}
-    <details className="assumptions"><summary>Simulation assumptions</summary><p>Long or flat · one-period signal delay · close-to-close returns. Strategy costs included; buy-and-hold shown before costs.</p></details>
+    <div className="parameter-footer"><details className="assumptions"><summary>Simulation assumptions</summary><p>Long or flat · one-period signal delay · close-to-close returns. Strategy costs included; buy-and-hold shown before costs.</p></details><button className="primary-button" type="submit" disabled={loading || disabled}>{loading ? 'Running experiment…' : 'Run backtest'} <span aria-hidden="true">↗</span></button></div>
   </form>
 }

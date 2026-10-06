@@ -298,3 +298,156 @@
 @keyframes chrome-sweep{0%,15%{transform:translateX(0)}65%,100%{transform:translateX(1750px)}}
 @media(max-width:480px){.chrome-logo{width:128px;height:60px}.header-controls,.header-controls .workspace-tabs{gap:10px}}
 @media(prefers-reduced-motion:reduce){.chrome-reflection{animation:none;opacity:0}}
+.chrome-logo{width:62px;height:66px}
+.journal{height:100%;display:flex;flex-direction:column;min-height:0;padding:20px}
+#workspace-journal-panel{flex:1;min-height:0}
+.journal-heading{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--rule);padding-bottom:16px;margin-bottom:16px}
+.journal-heading h2{font-size:22px;font-family:Georgia,serif}
+.journal-body{display:grid;grid-template-columns:240px minmax(0,1fr);gap:24px;flex:1;min-height:0}
+.journal-list{overflow:auto;border-right:1px solid var(--rule);padding-right:16px}
+.journal-list button{display:flex;flex-direction:column;text-align:left;gap:8px;width:100%;padding:14px 12px;margin-bottom:8px;background:transparent;border-color:transparent;border-radius:8px}
+.journal-list button[aria-current=true]{background:#9bbcf00a;border-color:#45505e}
+.journal-list strong{font-size:12px;font-weight:500;overflow-wrap:anywhere}
+.journal-list span{color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+.journal-editor{display:flex;flex-direction:column;min-height:0;gap:18px}
+.journal-editor label{font-size:11px}
+.journal-editor input{font-size:17px;padding:12px}
+.journal-notes{flex:1;min-height:0;display:flex;flex-direction:column}
+.journal-notes textarea{flex:1;min-height:140px;resize:none;background:#101110;border:1px solid var(--rule);border-radius:6px;padding:16px;color:var(--text);font:14px/1.8 Arial,sans-serif}
+.journal-notes textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.journal-empty{align-self:center;justify-self:center;max-width:400px}
+.journal-empty h2{font:28px Georgia,serif;margin-bottom:12px}
+.journal-empty button{margin-top:20px}
+@media(max-width:780px){.journal-body{grid-template-columns:1fr}.journal-list{max-height:150px;border-right:0;border-bottom:1px solid var(--rule)}.journal-editor{min-height:380px}.journal-empty{padding:25px 0}.journal{height:auto;min-height:500px}}
+.chrome-logo{width:50px;height:54px}
+.journal-save{align-self:flex-end;padding:9px 18px;border-radius:18px;background:var(--text);color:var(--surface)}
+.editor-orbs{display:flex;gap:12px}
+.parameter-popover.with-journal{width:min(1080px,calc(100vw - 40px))}
+.with-journal .editor-content{display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,700px);gap:16px;align-items:start}
+.journal-reference{padding:20px;background:#171916;border:1px solid #3c3d37;border-radius:18px;min-width:0;display:flex;flex-direction:column;max-height:calc(100dvh - 110px)}
+.journal-reference h2{font:23px Georgia,serif;margin-bottom:20px}
+.journal-reference label{margin-bottom:16px;font-size:11px}
+.reference-note{white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;line-height:1.8;font-size:13px;color:#c8c8c0;min-height:100px}
+@media(max-width:900px){.with-journal .editor-content{grid-template-columns:1fr}.journal-reference{max-height:230px}.parameter-popover.with-journal{width:calc(100vw - 28px)}}
+
+/* Keep overlay controls stationary; animate only the editing surface. */
+.parameter-popover,.parameter-popover[open]{top:13px;right:22px;padding:6px 6px 8px;transform:none;opacity:1;transform-origin:top right;transition:none;max-height:calc(100dvh - 21px)}
+.parameter-popover .drawer-heading{margin-bottom:12px;min-height:40px}
+.parameter-popover .editor-orbs .parameter-orb{transform:none}
+.parameter-popover .editor-orbs .parameter-orb[aria-pressed=true],.parameter-popover .editor-orbs .parameter-orb[aria-expanded=true]{border-color:#a6b9ca;color:#c4d8ee;background:radial-gradient(circle at 30% 20%,#3c4852,#242b30 75%)}
+.parameter-popover[open] .editor-content{animation:editor-reveal .18s ease-out}
+@keyframes editor-reveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@starting-style{.parameter-popover[open]{transform:none;opacity:1}}
+@media(max-width:1100px){.parameter-popover{right:12px}}
+@media(max-width:780px){.parameter-popover{right:8px}}
+@media(max-width:480px){.editor-orbs{gap:10px}}
+@media(prefers-reduced-motion:reduce){.parameter-popover[open] .editor-content{animation:none}}
+
+/* Dismiss the editor and its backdrop together, without a lingering overlay. */
+.parameter-popover::backdrop{transition:none}
+
+/* Cards return to their own control; the controls themselves never move. */
+.parameter-popover.is-closing .editor-content{pointer-events:none;animation:none}
+.parameter-popover.is-closing .editor-orbs{pointer-events:none}
+.parameter-popover.is-closing .drawer-heading>div:first-child{opacity:0;transition:opacity .1s ease}
+.parameter-popover.is-closing::backdrop{background:#0000;transition:background .2s ease}
+.parameter-popover.is-closing .form-section,.parameter-popover.is-closing .journal-reference{will-change:transform,opacity;transform-origin:center}
+@media(prefers-reduced-motion:reduce){.parameter-popover.is-closing::backdrop,.parameter-popover.is-closing .drawer-heading>div:first-child{transition:none}}
+
+/* Reserve the reference lane so the parameter cards never resize. */
+.parameter-popover,.parameter-popover.with-journal{width:min(1080px,calc(100vw - 40px))}
+.parameter-popover .drawer-heading{justify-content:flex-end}
+.parameter-popover .editor-content,.parameter-popover.with-journal .editor-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,688px);gap:16px;align-items:start}
+.parameter-popover .editor-content>div{grid-column:2;min-width:0}
+.parameter-popover .journal-reference{grid-column:1;grid-row:1;align-self:start}
+.parameter-popover[open] .editor-content{animation:none}
+.parameter-popover.is-closing .drawer-heading>div:first-child{opacity:1;transition:none}
+@media(max-width:1000px){
+  .parameter-popover,.parameter-popover.with-journal{width:min(700px,calc(100vw - 28px))}
+  .parameter-popover .editor-content,.parameter-popover.with-journal .editor-content{grid-template-columns:minmax(0,1fr)}
+  .parameter-popover .editor-content>div{grid-column:1}
+  .parameter-popover .journal-reference{max-height:230px}
+}
+
+/* Compact, centered header group. */
+.topbar{height:46px;justify-content:center;gap:32px;padding-inline:14px}
+.chrome-logo{width:30px;height:34px}
+.header-controls,.header-controls .workspace-tabs,.editor-orbs{gap:12px}
+.topbar .parameter-orb,.header-controls .workspace-tabs .nav-orb,.editor-orbs .parameter-orb{width:30px;height:30px;min-width:30px}
+.topbar .parameter-orb svg,.editor-orbs .parameter-orb svg{width:15px;height:15px}
+.parameter-popover,.parameter-popover.with-journal{top:2px;left:50%;right:auto;margin-left:0;translate:-50% 0;width:min(1080px,calc(100vw - 28px));max-height:calc(100dvh - 10px)}
+.parameter-popover .drawer-heading{height:30px;min-height:30px;margin-bottom:14px}
+.parameter-popover .editor-orbs{position:fixed;z-index:1}
+@media(max-width:1000px){.parameter-popover,.parameter-popover.with-journal{width:min(700px,calc(100vw - 28px))}}
+.parameter-popover,.parameter-popover.with-journal{translate:none;left:max(14px,calc((100vw - 1080px)/2))}
+@media(max-width:1000px){.parameter-popover,.parameter-popover.with-journal{left:max(14px,calc((100vw - 700px)/2))}}
+
+/* Uniform header spacing and stable editor rows, with opacity-only transitions. */
+.topbar{gap:12px}
+.parameter-popover .editor-content>div{grid-row:1}
+.parameter-popover.is-closing .form-section,.parameter-popover.is-closing .journal-reference{will-change:opacity}
+.parameter-popover.is-closing::backdrop{transition:background .14s ease}
+@media(max-width:1000px){
+  .parameter-popover .editor-content{position:relative}
+  .parameter-popover .journal-reference{position:absolute;top:0;left:0;width:min(320px,100%);max-height:calc(100dvh - 100px);z-index:2;box-shadow:8px 8px 30px #0008}
+}
+/* Scroll the card area only, so focusing an orb cannot scroll the whole editor. */
+.parameter-popover{overflow:visible}
+.parameter-popover .editor-content{max-height:calc(100dvh - 68px);overflow:auto;padding:4px}
+.parameter-popover[open]{top:2px}
+
+/* A useful start page: one clear primary action and two ways to resume work. */
+.chrome-logo{width:30px;height:30px}
+.start-screen{display:flex;flex-direction:column;flex:1;min-height:0;gap:14px}
+.start-main{flex:1;min-height:0;display:grid;grid-template-columns:1fr .8fr;align-items:center;gap:28px;padding:clamp(24px,5vw,72px);border:1px solid var(--rule);background:radial-gradient(ellipse at 80% 50%,#b5b3a007,transparent 65%),#121311}
+.start-copy h2{font-size:clamp(36px,4.7vw,66px);font-weight:400;line-height:1.08;letter-spacing:-2px}
+.start-copy h2 em{font-family:Georgia,'Times New Roman',serif;font-weight:400;color:#cac8bc}
+.start-copy p{font-size:13px;margin-top:20px}
+.start-button{display:flex;align-items:center;gap:12px;background:var(--text);color:#151612;border:0;border-radius:24px;padding:12px 18px;margin-top:28px;font-size:12px}
+.start-button>span{margin-left:20px}
+.start-art{width:min(100%,320px);justify-self:center;opacity:.8}
+.start-art svg{width:100%;display:block}
+.draft-grid{stroke:#282b25;stroke-width:.65}
+.draft-back{stroke:#54594e;fill:#151713}
+.draft-front{stroke:#74796a;fill:#191b17}
+.draft-rule{stroke:#707663;stroke-width:1;stroke-linecap:round}
+.draft-pencil{stroke:#b1b8a2;stroke-width:1.3;fill:#242821;stroke-linejoin:round}
+.start-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.start-shortcuts button{display:flex;align-items:center;text-align:left;gap:18px;padding:22px 26px;background:#131411;border:1px solid var(--rule);border-radius:2px;transition:border-color .15s,background .15s}
+.start-shortcuts button:hover{border-color:#62675b;background:#1a1c17}
+.start-shortcuts button>svg{width:22px;height:22px;color:#a6aa9b;flex-shrink:0}
+.start-shortcuts strong{display:block;font-weight:400;font-size:14px}
+.start-shortcuts small{display:block;margin-top:6px;font-size:11px;color:var(--muted)}
+.shortcut-arrow{margin-left:auto;color:#a5a997}
+@media(max-width:780px){.start-screen{min-height:470px}.start-main{padding:28px;grid-template-columns:1fr;gap:0}.start-art{display:none}.start-shortcuts button{padding:18px 14px;gap:10px}.start-shortcuts small{line-height:1.5}.start-shortcuts .shortcut-arrow{display:none}}
+@media(prefers-reduced-motion:reduce){.start-shortcuts button{transition:none}}
+
+/* One composed editor surface, with aligned sections and an integrated footer. */
+.parameter-popover .settings-panel{padding:20px;background:#191a17;border:1px solid #41423b;border-radius:12px;box-shadow:0 12px 36px #0005}
+.parameter-popover .settings-panel fieldset{gap:18px 0;align-items:stretch}
+.parameter-popover .settings-panel .form-section,.parameter-popover .settings-panel .form-section+.form-section{border:0;border-radius:0;box-shadow:none;background:none;padding:0 18px 0 0;display:flex;flex-direction:column}
+.parameter-popover .settings-panel .form-section:nth-of-type(2){border-left:1px solid #35362f;padding:0 0 0 18px}
+.parameter-popover .settings-panel .form-section h3{font-size:11px;letter-spacing:.3px;text-transform:none;font-weight:600;margin:0 0 16px;color:#e0dfd5}
+.parameter-popover .settings-panel label{font-size:11px;gap:7px;margin-bottom:12px;color:#a9aaa0}
+.parameter-popover .settings-panel input,.parameter-popover .settings-panel select{height:36px;border-radius:5px;border-color:#393b32;background:#11120f;padding:8px 10px;font-size:12px}
+.parameter-popover .settings-panel .field-pair{gap:12px}
+.parameter-popover .settings-panel .field-pair input[type=date]{font-size:11px;padding-inline:6px}
+.parameter-popover .parameter-box{display:flex;flex-direction:column;flex:1}
+.parameter-popover .parameter-box p{order:2;margin:0;font-size:10px;line-height:1.6;color:#909386}
+.parameter-popover .settings-panel .field-help{font-size:10px;line-height:1.6;color:#909386}
+.parameter-popover .settings-panel .form-section:last-of-type{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:0 20px;padding:18px 0 0;border-top:1px solid #35362f}
+.parameter-popover .settings-panel .annualization-fields{padding-left:20px;border-left:1px solid #35362f}
+.parameter-popover .settings-panel .form-section:last-of-type h3{margin-bottom:14px}
+.parameter-footer{display:flex;align-items:start;justify-content:space-between;gap:18px;border-top:1px solid #35362f;padding-top:16px;margin-top:18px}
+.parameter-popover .settings-panel .parameter-footer .assumptions{margin:0;padding:10px 0;border:0;border-radius:0;background:none;flex:1;font-size:11px}
+.parameter-popover .parameter-footer .primary-button{width:162px;min-width:162px;min-height:36px;border-radius:7px;font-size:12px;padding:9px 12px}
+.parameter-popover .parameter-footer .assumptions p{font-size:10px;line-height:1.7;margin-top:10px}
+@media(max-width:600px){
+ .parameter-popover .settings-panel{padding:16px}
+ .parameter-popover .settings-panel .form-section{padding:0}
+ .parameter-popover .settings-panel .form-section:nth-of-type(2){border-left:0;border-top:1px solid #35362f;padding:16px 0 0}
+ .parameter-popover .settings-panel .form-section:last-of-type{display:block}
+ .parameter-popover .settings-panel .annualization-fields{padding:12px 0 0;border-left:0}
+ .parameter-footer{gap:12px;flex-wrap:wrap}
+ .parameter-popover .parameter-footer .primary-button{min-width:140px;width:140px}
+}
