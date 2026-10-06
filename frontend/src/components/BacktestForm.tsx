@@ -43,23 +43,23 @@ export default function BacktestForm({ disabled = false, initialRequest: r, onRe
     } finally { controller.current = null; setLoading(false); onRunning(false) }
   }
   return <form className="settings-panel panel" onSubmit={handleSubmit}>
-    <div className="panel-heading"><span className="eyebrow">CONFIGURATION</span><h2>Backtest parameters</h2></div>
+    <div className="panel-heading"><h2>Backtest parameters</h2></div>
     <fieldset disabled={loading || disabled}>
-      <label>Symbol<input required maxLength={30} value={fields.symbol} onChange={e => update('symbol', e.target.value)} autoCapitalize="characters" spellCheck={false} /></label>
+      <section className="form-section" aria-labelledby="market-heading"><h3 id="market-heading">Market & dates</h3><label>Symbol<input required maxLength={30} value={fields.symbol} onChange={e => update('symbol', e.target.value)} autoCapitalize="characters" spellCheck={false} /></label>
       <div className="field-pair"><label>Start date<input type="date" required value={fields.start} onChange={e => update('start', e.target.value)} /></label><label>End date<input type="date" required value={fields.end} onChange={e => update('end', e.target.value)} /></label></div>
       <p className="field-help">Daily prices · end date is exclusive</p>
-      <label>Strategy<select value={fields.strategy} onChange={e => update('strategy', e.target.value)}><option value="moving_average">Moving average crossover</option><option value="momentum">Momentum</option><option value="mean_reversion">Mean reversion</option></select></label>
+      </section><section className="form-section" aria-labelledby="strategy-heading"><h3 id="strategy-heading">Strategy</h3><label>Strategy<select value={fields.strategy} onChange={e => update('strategy', e.target.value)}><option value="moving_average">Moving average crossover</option><option value="momentum">Momentum</option><option value="mean_reversion">Mean reversion</option></select></label>
       <div className="parameter-box">
-        {fields.strategy === 'moving_average' ? <><p>Invest when the short average is above the long average.</p><div className="field-pair">{numeric('short', 'Short window', 1)}{numeric('long', 'Long window', 1)}</div></> : fields.strategy === 'momentum' ? <><p>Invest when price exceeds its value one lookback ago.</p>{numeric('lookback', 'Lookback · trading periods', 1)}</> : <><p>Buy below the rolling mean; exit as price recovers toward it.</p>{numeric('mean', 'Mean window · trading periods', 1)}<div className="field-pair">{numeric('entry', 'Entry distance %', 0, 'any')}{numeric('exit', 'Exit distance %', 0, 'any')}</div></>}
+        {fields.strategy === 'moving_average' ? <><p>Invest when the short average is above the long average.</p><div className="field-pair">{numeric('short', 'Short window · days', 1)}{numeric('long', 'Long window · days', 1)}</div></> : fields.strategy === 'momentum' ? <><p>Invest when price exceeds its value one lookback ago.</p>{numeric('lookback', 'Lookback · trading periods', 1)}</> : <><p>Buy below the rolling mean; exit as price recovers toward it.</p>{numeric('mean', 'Mean window · trading periods', 1)}<div className="field-pair">{numeric('entry', 'Entry distance %', 0, 'any')}{numeric('exit', 'Exit distance %', 0, 'any')}</div></>}
       </div>
-      <div className="field-pair">{numeric('cash', 'Initial capital · USD', 0.01, 'any')}{numeric('costs', 'Cost · basis points', 0, 'any')}</div>
+      </section><section className="form-section" aria-labelledby="capital-heading"><h3 id="capital-heading">Capital & costs</h3><div className="field-pair">{numeric('cash', 'Initial capital · USD', 0.01, 'any')}{numeric('costs', 'Cost · basis points', 0, 'any')}</div>
       <p className="field-help">5 bps = 0.05% per unit of turnover.</p>
-      <details><summary>Annualization settings</summary><div className="field-pair">{numeric('periods', 'Periods / year', 1)}{numeric('riskFree', 'Risk-free rate %', -99.99, 'any')}</div></details>
+      <div className="annualization-fields"><div className="field-pair">{numeric('periods', 'Periods / year', 1)}{numeric('riskFree', 'Risk-free rate %', -99.99, 'any')}</div></div></section>
       <button className="primary-button" type="submit">{loading ? 'Running experiment…' : 'Run backtest'} <span aria-hidden="true">↗</span></button>
     </fieldset>
     {loading && <button type="button" className="quiet-button" onClick={() => controller.current?.abort()}>Stop waiting</button>}
-    <div role="status" className="form-status">{loading ? 'Downloading prices and calculating performance…' : 'Ready for your next hypothesis.'}</div>
+    <div role="status" className="form-status">{loading ? 'Downloading prices and calculating performance…' : ''}</div>
     {error && <p role="alert" className="error-message">{error}</p>}
-    <div className="assumptions"><strong>Simulation assumptions</strong><p>Long or flat · one-period signal delay · close-to-close returns. Strategy costs included; buy-and-hold shown before costs.</p></div>
+    <details className="assumptions"><summary>Simulation assumptions</summary><p>Long or flat · one-period signal delay · close-to-close returns. Strategy costs included; buy-and-hold shown before costs.</p></details>
   </form>
 }

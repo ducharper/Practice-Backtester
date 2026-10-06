@@ -18,6 +18,21 @@ The `data` folder is ignored by Git. To back up saved runs, stop the launcher an
 
 ## Development
 
+### Optional IBKR connection check
+
+The initial TWS connectivity check is `check_ibkr.py`. It connects only to local port 7497 with client ID 47, requests the server time, then disconnects. Keep **Read-Only API** checked in TWS. This does not yet switch backtests to IBKR data or verify historical-data permissions.
+
+Install the Python library from the official IBKR API installer, not the unrelated PyPI download. For the locally installed version:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install "C:/TWS API 1051.01/source/pythonclient"
+.\.venv\Scripts\python.exe check_ibkr.py
+```
+
+This SDK installs `ibapi==1051.1` and requires `protobuf==5.29.5`. The latter replaces the previously installed protobuf version in this project's environment. Adjust the source path if you install another SDK version. No account credentials are stored by the check.
+
+### Frontend and backend
+
 The previous two-terminal Vite/API workflow still works on ports 5173/8000. The launcher instead serves the built frontend and API together on port 8765. Stop and restart the launcher after changing Python code; frontend changes are rebuilt on the next launch.
 
 Storage tests: `.venv\Scripts\python.exe -m unittest discover -s tests -p test_saved_runs.py` (uses temporary databases and synthetic prices, not your saved runs).
